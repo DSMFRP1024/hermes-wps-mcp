@@ -229,11 +229,11 @@ function Install-McpServerDependencies {
 
 # ============================================================================
 # 复制 WPS 加载项到 WPS 加载项目录，并创建 publish.xml 注册文件
-# Windows路径: %APPDATA%\kingsoft\wps\jsaddons\wps-claude-addon_\
+# Windows路径: %APPDATA%\kingsoft\wps\jsaddons\wps-addon_\
 # ============================================================================
 function Copy-WpsAddon {
     $projectRoot = Get-ProjectRoot
-    $addonSource = Join-Path $projectRoot "wps-claude-addon"
+    $addonSource = Join-Path $projectRoot "wps-addon"
 
     Write-Info ">>> 复制 WPS 加载项到 WPS 目录..."
 
@@ -246,7 +246,7 @@ function Copy-WpsAddon {
     # WPS 加载项目标目录 (Windows)
     # 注意这个路径，老王查了半天WPS文档才找到的
     $wpsAddonsPath = Join-Path $env:APPDATA "kingsoft\wps\jsaddons"
-    $addonTarget = Join-Path $wpsAddonsPath "wps-claude-addon_"
+    $addonTarget = Join-Path $wpsAddonsPath "wps-addon_"
 
     # 创建目标目录（如果不存在）
     if (-not (Test-Path $wpsAddonsPath)) {
@@ -291,7 +291,7 @@ function Copy-WpsAddon {
         $publishContent = @'
 <?xml version="1.0" encoding="UTF-8"?>
 <jsplugins>
-  <jsplugin name="wps-claude-addon" type="wps,et,wpp" url="wps-claude-addon_/" enable="enable_dev"/>
+  <jsplugin name="wps-addon" type="wps,et,wpp" url="wps-addon_/" enable="enable_dev"/>
 </jsplugins>
 '@
         $publishContent | Out-File -FilePath $publishXmlPath -Encoding utf8

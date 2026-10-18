@@ -30,12 +30,12 @@ NC='\033[0m' # No Color
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 PROJECT_DIR="$( cd "$SCRIPT_DIR/.." && pwd )"
 
-# 加载项源目录 (wps-claude-assistant)
-ADDON_SOURCE="$PROJECT_DIR/wps-claude-assistant"
+# 加载项源目录 (wps-assistant)
+ADDON_SOURCE="$PROJECT_DIR/wps-assistant"
 
 # WPS 加载项目录 (注意：目录名必须以_结尾)
 WPS_ADDON_DIR="$HOME/Library/Containers/com.kingsoft.wpsoffice.mac/Data/.kingsoft/wps/jsaddons"
-ADDON_TARGET="$WPS_ADDON_DIR/claude-assistant_"
+ADDON_TARGET="$WPS_ADDON_DIR/wps-assistant_"
 
 echo "项目目录: $PROJECT_DIR"
 echo ""
@@ -91,7 +91,7 @@ check_addon_dir() {
 
 # ========== 安装加载项 ==========
 install_addon() {
-    echo "========== [3/5] 安装 WPS Claude助手 加载项 =========="
+    echo "========== [3/5] 安装 WPS WPS助手 加载项 =========="
 
     # 检查源目录
     if [ ! -d "$ADDON_SOURCE" ]; then
@@ -125,7 +125,7 @@ update_publish_xml() {
     cat > "$PUBLISH_XML" << 'EOF'
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <jsplugins>
-  <jsplugin name="claude-assistant" type="wps,et,wpp" url="claude-assistant_/" enable="enable_dev"/>
+  <jsplugin name="wps-assistant" type="wps,et,wpp" url="wps-assistant_/" enable="enable_dev"/>
 </jsplugins>
 EOF
 
@@ -253,7 +253,7 @@ show_complete() {
     echo -e "  2. ${YELLOW}完全退出 WPS Office (⌘Q)${NC}，再重新打开"
     echo -e "     ${RED}⚠ 注意：仅关闭窗口(⌘W)不会重新加载加载项，必须 ⌘Q 退出！${NC}"
     echo "  3. 打开 Excel/Word/PPT 文档"
-    echo "  4. 查看 'Claude助手' 选项卡，确认状态为 '轮询中'"
+    echo "  4. 查看 'WPS助手' 选项卡，确认状态为 '轮询中'"
     echo ""
     echo "技术架构 (MCP + Skills 双层架构):"
     echo "  ┌─────────────┐      ┌─────────────┐      ┌─────────────┐"

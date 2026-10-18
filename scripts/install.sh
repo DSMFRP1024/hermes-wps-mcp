@@ -311,7 +311,7 @@ install_mcp_server_dependencies() {
 # 注意：加载项目录名必须以 _ 结尾，这是 WPS 的约定
 # ============================================================================
 copy_wps_addon_macos() {
-    local addon_source="$PROJECT_ROOT/wps-claude-assistant"
+    local addon_source="$PROJECT_ROOT/wps-assistant"
 
     info "复制 WPS 加载项到 WPS 目录 (macOS)..."
 
@@ -324,7 +324,7 @@ copy_wps_addon_macos() {
     # WPS 加载项目标目录 (macOS)
     # 正确路径：Data/.kingsoft/wps/jsaddons（非 Data/Documents/wps/jsaddons）
     local wps_addons_path="$HOME/Library/Containers/com.kingsoft.wpsoffice.mac/Data/.kingsoft/wps/jsaddons"
-    local addon_target="$wps_addons_path/claude-assistant_"
+    local addon_target="$wps_addons_path/wps-assistant_"
 
     # 创建目标目录（如果不存在）
     if [ ! -d "$wps_addons_path" ]; then
@@ -362,7 +362,7 @@ copy_wps_addon_macos() {
 # Linux路径: ~/.local/share/Kingsoft/wps/jsaddons/
 # ============================================================================
 copy_wps_addon_linux() {
-    local addon_source="$PROJECT_ROOT/wps-claude-assistant"
+    local addon_source="$PROJECT_ROOT/wps-assistant"
 
     info "复制 WPS 加载项到 WPS 目录 (Linux)..."
 
@@ -375,7 +375,7 @@ copy_wps_addon_linux() {
     # WPS 加载项目标目录 (Linux)
     # 注意：目录名必须以 _ 结尾，这是 WPS jsaddons 的约定
     local wps_addons_path="$HOME/.local/share/Kingsoft/wps/jsaddons"
-    local addon_target="$wps_addons_path/claude-assistant_"
+    local addon_target="$wps_addons_path/wps-assistant_"
 
     # 创建目标目录（如果不存在）
     if [ ! -d "$wps_addons_path" ]; then
@@ -422,7 +422,7 @@ copy_wps_addon() {
             ;;
         *)
             warn "当前系统不支持 WPS 加载项自动安装"
-            echo "  请手动将 wps-claude-addon 目录复制到 WPS 加载项目录"
+            echo "  请手动将 wps-addon 目录复制到 WPS 加载项目录"
             return 1
             ;;
     esac
@@ -588,7 +588,7 @@ update_publish_xml() {
     cat > "$publish_xml" << 'XMLEOF'
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <jsplugins>
-  <jsplugin name="claude-assistant" type="wps,et,wpp" url="claude-assistant_/" enable="enable_dev"/>
+  <jsplugin name="wps-assistant" type="wps,et,wpp" url="wps-assistant_/" enable="enable_dev"/>
 </jsplugins>
 XMLEOF
 

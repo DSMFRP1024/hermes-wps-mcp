@@ -2,9 +2,9 @@
 
 CI 里可以直接跑（无 WPS、无图形会话也能过），因为它只测安装语义：
   1. 预置一个「别人的」加载项
-  2. 安装 -> 新增 claude-assistant，other-vendor 仍在（不许覆盖）
+  2. 安装 -> 新增 wps-assistant，other-vendor 仍在（不许覆盖）
   3. 再装一次 -> 幂等，条目不重复，旧目录被备份而非覆盖
-  4. 卸载 -> 移除 claude-assistant，other-vendor 仍在
+  4. 卸载 -> 移除 wps-assistant，other-vendor 仍在
 
 用法：python3 build/test_install.py
       WPS_TEST_BASH=/path/to/bash python3 build/test_install.py   # 指定 shell
@@ -28,16 +28,22 @@ STUB = os.environ.get("WPS_TEST_STUB") == "1"
 STUB_FILES = [
     "wps-office-mcp/dist/index.js",
     "wps-office-mcp/node_modules/@modelcontextprotocol/sdk/package.json",
-    "wps-claude-assistant/manifest.xml",
-    "wps-claude-assistant/ribbon.xml",
-    "wps-claude-assistant/main.js",
+    "wps-assistant/manifest.xml",
+    "wps-assistant/ribbon.xml",
+    "wps-assistant/main.js",
 ]
 
 SEED = """<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <jsplugins>
   <jsplugin name="other-vendor" type="et" url="other_/" enable="enable_dev"/>
+  <jsplugin name="claude-assistant" type="wps,et,wpp" url="claude-assistant_/" enable="enable_dev"/>
 </jsplugins>
 """
+
+# 旧品牌 ID 的残留（目录 + 注册项）。改名后必须被清理，否则功能区会出两个页签。
+# 这两个字面量是**兼容性测试夹具**，不是界面文案。
+LEGACY_ID = "claude-assistant"
+LEGACY_DIR = LEGACY_ID + "_"
 
 fails = []
 
@@ -108,10 +114,14 @@ def main():
         return [(n.get("name"), n.get("type"), n.get("url"), n.get("enable"))
                 for n in ET.parse(pub).getroot()]
 
-    print("== 准备：预置一个别的加载项 ==")
+    print("== 准备：预置一个别的加载项 + 旧品牌残留 ==")
     os.makedirs(jsd, exist_ok=True)
     with open(pub, "w", encoding="utf-8", newline="\n") as fh:
         fh.write(SEED)
+    legacy_dir = os.path.join(jsd, LEGACY_DIR)
+    os.makedirs(legacy_dir, exist_ok=True)
+    with open(os.path.join(legacy_dir, "manifest.xml"), "w", encoding="utf-8") as fh:
+        fh.write("<manifest/>\n")
     print("   publish.xml: %s" % plugins())
 
     # ---------------- 第 1 次安装 ----------------
@@ -125,24 +135,30 @@ def main():
     ps = plugins()
     print("   publish.xml: %s" % ps)
     names = [p[0] for p in ps]
-    check("新增 claude-assistant", "claude-assistant" in names)
+    check("新增 wps-assistant", "wps-assistant" in names)
     check("未破坏 other-vendor", "other-vendor" in names, "红线：不许覆盖已有配置")
 
-    ca = next((p for p in ps if p[0] == "claude-assistant"), None)
+    # 改名迁移：旧品牌那一份必须被清掉，否则功能区会出现两个同名页签
+    check("旧版注册项已清理", LEGACY_ID not in names, str(names))
+    check("旧版加载项目录已移走", not os.path.exists(legacy_dir))
+    baks = [d for d in os.listdir(jsd) if d.startswith(LEGACY_DIR + ".bak.")]
+    check("旧版目录留有备份（不是删除）", len(baks) == 1, str(baks))
+
+    ca = next((p for p in ps if p[0] == "wps-assistant"), None)
     check("type = wps,et,wpp", ca and ca[1] == "wps,et,wpp", str(ca))
-    check("url = claude-assistant_/", ca and ca[2] == "claude-assistant_/", str(ca))
+    check("url = wps-assistant_/", ca and ca[2] == "wps-assistant_/", str(ca))
     check("enable = enable_dev", ca and ca[3] == "enable_dev", str(ca))
 
-    addon_dir = os.path.join(jsd, "claude-assistant_")
+    addon_dir = os.path.join(jsd, "wps-assistant_")
     check("加载项目录已部署", os.path.isdir(addon_dir))
     check("含 manifest.xml", os.path.isfile(os.path.join(addon_dir, "manifest.xml")))
     check("含 main.js", os.path.isfile(os.path.join(addon_dir, "main.js")))
     check("服务入口已部署",
           os.path.isfile(os.path.join(prefix, "wps-office-mcp", "dist", "index.js")))
-    # mac-poll-server.ts 里 switchApp 用 ../../../wps-claude-assistant 定位脚本，
+    # mac-poll-server.ts 里 switchApp 用 ../../../wps-assistant 定位脚本，
     # 所以两者必须同级
     check("服务与加载项同级（路径依赖）",
-          os.path.isdir(os.path.join(prefix, "wps-claude-assistant")))
+          os.path.isdir(os.path.join(prefix, "wps-assistant")))
 
     raw = open(pub, encoding="utf-8").read()
     check("声明双引号 + standalone",
@@ -158,7 +174,7 @@ def main():
     ps2 = plugins()
     names2 = [p[0] for p in ps2]
     check("条目数仍为 2", len(ps2) == 2, str(names2))
-    check("claude-assistant 未重复", names2.count("claude-assistant") == 1)
+    check("wps-assistant 未重复", names2.count("wps-assistant") == 1)
     check("other-vendor 仍在", "other-vendor" in names2)
     newdirs = [d for d in os.listdir(jsd) if d not in before]
     check("旧目录被备份而非覆盖",
@@ -171,7 +187,7 @@ def main():
     ps3 = plugins()
     names3 = [p[0] for p in ps3]
     print("   publish.xml: %s" % ps3)
-    check("claude-assistant 已移除", "claude-assistant" not in names3)
+    check("wps-assistant 已移除", "wps-assistant" not in names3)
     check("other-vendor 仍在", "other-vendor" in names3, "红线：卸载不许误伤")
     check("安装目录移到备份（未删除）",
           not os.path.isdir(prefix)

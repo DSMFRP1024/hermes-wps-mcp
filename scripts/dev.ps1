@@ -140,7 +140,7 @@ function Start-McpServer {
 
 # 启动 WPS 加载项开发服务器
 function Start-WpsAddon {
-    $addonPath = Join-Path $ProjectRoot "wps-claude-addon"
+    $addonPath = Join-Path $ProjectRoot "wps-addon"
 
     if (-not (Test-Path $addonPath)) {
         Write-Warning "WPS 加载项目录不存在: $addonPath"

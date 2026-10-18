@@ -1,5 +1,10 @@
 # WPS Skills 安装指南
 
+> **本文件是上游安装文档的存档**（原作者面向 Claude Code / Cursor 等 AI 助手编写）。
+> 其中 `claude mcp add`、`~/.claude/skills` 这类步骤是**上游生态的用法**，
+> 与本仓库的内网交付无关 —— 本仓库在 Linux 上只跑 `install.sh`，
+> 宿主是 Hermes Agent。实际部署请以 [`README.md`](README.md) 为准。
+
 > **本文件面向 AI 编程助手**（Claude Code、Cursor 等）。读取本文件后，你应能完全理解安装流程并自动执行所有步骤。按顺序执行，不要跳步。
 
 ---
@@ -60,7 +65,7 @@ chmod +x scripts/auto-install-mac.sh
 脚本自动完成以下全部操作：
 - 二次检测前置条件（macOS、WPS Office、Node.js 18+）
 - 创建 WPS 加载项目录（如不存在）
-- 安装加载项文件到 `~/Library/Containers/com.kingsoft.wpsoffice.mac/Data/.kingsoft/wps/jsaddons/claude-assistant_/`（目录名尾部 `_` 是必须的）
+- 安装加载项文件到 `~/Library/Containers/com.kingsoft.wpsoffice.mac/Data/.kingsoft/wps/jsaddons/wps-assistant_/`（目录名尾部 `_` 是必须的）
 - 更新 publish.xml 注册加载项
 - 执行 `npm install` 安装依赖
 - 执行 `npm run build` 编译 TypeScript
@@ -82,10 +87,10 @@ ls ~/.claude/skills/
 ls wps-office-mcp/dist/index.js
 
 # 4. WPS 加载项已安装（目录名以 _ 结尾）
-ls ~/Library/Containers/com.kingsoft.wpsoffice.mac/Data/.kingsoft/wps/jsaddons/claude-assistant_/
+ls ~/Library/Containers/com.kingsoft.wpsoffice.mac/Data/.kingsoft/wps/jsaddons/wps-assistant_/
 
-# 5. publish.xml 已注册加载项（输出应包含 claude-assistant）
-grep "claude-assistant" ~/Library/Containers/com.kingsoft.wpsoffice.mac/Data/.kingsoft/wps/jsaddons/publish.xml
+# 5. publish.xml 已注册加载项（输出应包含 wps-assistant）
+grep "wps-assistant" ~/Library/Containers/com.kingsoft.wpsoffice.mac/Data/.kingsoft/wps/jsaddons/publish.xml
 ```
 
 ### Step 4: 告知用户
@@ -94,7 +99,7 @@ grep "claude-assistant" ~/Library/Containers/com.kingsoft.wpsoffice.mac/Data/.ki
 1. **重启 Claude Code**（必须！Skills 只在启动时加载）
 2. 重启 WPS Office
 3. 打开任意 Excel/Word/PPT 文档
-4. 在 WPS 顶部查看 "Claude助手" 选项卡，确认状态显示 "轮询中"
+4. 在 WPS 顶部查看 "WPS助手" 选项卡，确认状态显示 "轮询中"
 
 ### ⚠️ 已知问题
 
@@ -139,14 +144,14 @@ cd ..
 
 # 复制加载项到 WPS 目录（目录名必须以 _ 结尾）
 mkdir -p ~/.local/share/Kingsoft/wps/jsaddons
-cp -R wps-claude-assistant ~/.local/share/Kingsoft/wps/jsaddons/claude-assistant_
+cp -R wps-assistant ~/.local/share/Kingsoft/wps/jsaddons/wps-assistant_
 
 # 创建 publish.xml
 # 注：enable="enable_dev" 为开发模式（默认）；若加载失败可改为 enable="true"（发布模式）
 cat > ~/.local/share/Kingsoft/wps/jsaddons/publish.xml << 'EOF'
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <jsplugins>
-  <jsplugin name="claude-assistant" type="wps,et,wpp" url="claude-assistant_/" enable="enable_dev"/>
+  <jsplugin name="wps-assistant" type="wps,et,wpp" url="wps-assistant_/" enable="enable_dev"/>
 </jsplugins>
 EOF
 
@@ -174,17 +179,17 @@ ls ~/.claude/skills/
 ls wps-office-mcp/dist/index.js
 
 # 4. WPS 加载项已安装（目录名以 _ 结尾）
-ls ~/.local/share/Kingsoft/wps/jsaddons/claude-assistant_/
+ls ~/.local/share/Kingsoft/wps/jsaddons/wps-assistant_/
 
 # 5. publish.xml 已注册
-grep "claude-assistant" ~/.local/share/Kingsoft/wps/jsaddons/publish.xml
+grep "wps-assistant" ~/.local/share/Kingsoft/wps/jsaddons/publish.xml
 ```
 
 ### Step 4: 告知用户
 
 1. **重启 Claude Code**（必须！）
 2. 重启 WPS Office
-3. 打开任意文档，查看 "Claude助手" 选项卡
+3. 打开任意文档，查看 "WPS助手" 选项卡
 
 ### ⚠️ Linux 启动顺序（重要）
 
@@ -202,7 +207,7 @@ Issue #17 反馈：在 Kylin Linux 等发行版上，若 WPS 已运行后再启�
 | 项目 | 路径 |
 |------|------|
 | WPS 加载项基础目录 | `~/.local/share/Kingsoft/wps/jsaddons/` |
-| 加载项安装目录 | `<基础目录>/claude-assistant_/`（尾部 `_` 必须） |
+| 加载项安装目录 | `<基础目录>/wps-assistant_/`（尾部 `_` 必须） |
 | publish.xml | `<基础目录>/publish.xml` |
 
 ---
@@ -240,7 +245,7 @@ powershell -ExecutionPolicy Bypass -File scripts/auto-install.ps1
 - 执行 `npm run build` 编译 TypeScript
 - 配置 Claude Code MCP（写入 `%USERPROFILE%\.claude\settings.json`）
 - 复制 Skills 到 `%USERPROFILE%\.claude\skills\`
-- 安装 WPS 加载项到 `%APPDATA%\kingsoft\wps\jsaddons\wps-claude-addon_\`（目录名尾部 `_` 是必须的）
+- 安装 WPS 加载项到 `%APPDATA%\kingsoft\wps\jsaddons\wps-addon_\`（目录名尾部 `_` 是必须的）
 - 更新 publish.xml 注册加载项
 
 ### Step 3: 安装后验证
@@ -256,10 +261,10 @@ Get-ChildItem "$env:USERPROFILE\.claude\skills"
 Test-Path "wps-office-mcp\dist\index.js"
 
 # 4. WPS 加载项已安装
-Test-Path "$env:APPDATA\kingsoft\wps\jsaddons\wps-claude-addon_"
+Test-Path "$env:APPDATA\kingsoft\wps\jsaddons\wps-addon_"
 
 # 5. publish.xml 已注册加载项
-Select-String -Path "$env:APPDATA\kingsoft\wps\jsaddons\publish.xml" -Pattern "wps-claude-addon"
+Select-String -Path "$env:APPDATA\kingsoft\wps\jsaddons\publish.xml" -Pattern "wps-addon"
 ```
 
 ### Step 4: 告知用户
@@ -267,7 +272,7 @@ Select-String -Path "$env:APPDATA\kingsoft\wps\jsaddons\publish.xml" -Pattern "w
 安装完成后，必须告知用户：
 1. **重启 Claude Code**（必须！）
 2. 重启 WPS Office
-3. 查看 "Claude助手" 选项卡
+3. 查看 "WPS助手" 选项卡
 
 ---
 
@@ -278,7 +283,7 @@ Select-String -Path "$env:APPDATA\kingsoft\wps\jsaddons\publish.xml" -Pattern "w
 | 项目 | 路径 |
 |------|------|
 | WPS 加载项基础目录 | `~/Library/Containers/com.kingsoft.wpsoffice.mac/Data/.kingsoft/wps/jsaddons/` |
-| 加载项安装目录 | `<基础目录>/claude-assistant_/`（尾部 `_` 必须） |
+| 加载项安装目录 | `<基础目录>/wps-assistant_/`（尾部 `_` 必须） |
 | publish.xml | `<基础目录>/publish.xml` |
 | Skills 注册目录 | `~/.claude/skills/`（4 个软链接） |
 | MCP Server 入口 | `<项目根目录>/wps-office-mcp/dist/index.js` |
@@ -289,7 +294,7 @@ Select-String -Path "$env:APPDATA\kingsoft\wps\jsaddons\publish.xml" -Pattern "w
 | 项目 | 路径 |
 |------|------|
 | WPS 加载项基础目录 | `%APPDATA%\kingsoft\wps\jsaddons\` |
-| 加载项安装目录 | `<基础目录>\wps-claude-addon_\`（尾部 `_` 必须） |
+| 加载项安装目录 | `<基础目录>\wps-addon_\`（尾部 `_` 必须） |
 | publish.xml | `<基础目录>\publish.xml` |
 | Skills 注册目录 | `%USERPROFILE%\.claude\skills\`（复制方式，非软链接） |
 | MCP Server 配置 | `%USERPROFILE%\.claude\settings.json` |
@@ -352,12 +357,12 @@ ls -la ~/.claude/skills/
 # 应看到 4 个软链接，指向项目中的 skills/ 子目录
 ```
 
-### WPS 加载项未显示 "Claude助手" 选项卡
+### WPS 加载项未显示 "WPS助手" 选项卡
 
 1. 确认加载项目录已正确复制且名称以 `_` 结尾：
 ```bash
 # macOS
-ls ~/Library/Containers/com.kingsoft.wpsoffice.mac/Data/.kingsoft/wps/jsaddons/claude-assistant_/
+ls ~/Library/Containers/com.kingsoft.wpsoffice.mac/Data/.kingsoft/wps/jsaddons/wps-assistant_/
 # 应包含 main.js, manifest.xml, ribbon.xml 等文件
 ```
 
@@ -365,7 +370,7 @@ ls ~/Library/Containers/com.kingsoft.wpsoffice.mac/Data/.kingsoft/wps/jsaddons/c
 ```bash
 # macOS
 cat ~/Library/Containers/com.kingsoft.wpsoffice.mac/Data/.kingsoft/wps/jsaddons/publish.xml
-# 应包含 <jsplugin name="claude-assistant" .../> 条目
+# 应包含 <jsplugin name="wps-assistant" .../> 条目
 ```
 
 3. 强制退出并重启 WPS：
@@ -433,26 +438,26 @@ claude mcp add wps-office node <项目绝对路径>/wps-office-mcp/dist/index.js
 
 ### Issue #5: Linux 平台 WPS 找不到加载项
 
-**现象**：Linux（如 ArchLinux）安装成功但 WPS 中看不到 Claude 助手选项卡。
+**现象**：Linux（如 ArchLinux）安装成功但 WPS 中看不到 WPS助手选项卡。
 
 **根因**：安装脚本中 Linux 加载项目录名缺少尾部 `_` 后缀，且未更新 publish.xml。WPS jsaddons 规范要求目录名以 `_` 结尾才能被识别。
 
 **解决方案**：
 ```bash
 # 1. 检查当前安装路径（错误的旧路径）
-ls ~/.local/share/Kingsoft/wps/jsaddons/wps-claude-addon 2>/dev/null
+ls ~/.local/share/Kingsoft/wps/jsaddons/wps-addon 2>/dev/null
 
 # 2. 如果存在旧目录，删除并重新安装
-rm -rf ~/.local/share/Kingsoft/wps/jsaddons/wps-claude-addon
+rm -rf ~/.local/share/Kingsoft/wps/jsaddons/wps-addon
 
 # 3. 手动复制到正确路径（目录名必须以 _ 结尾）
-cp -R <项目根目录>/wps-claude-assistant ~/.local/share/Kingsoft/wps/jsaddons/claude-assistant_
+cp -R <项目根目录>/wps-assistant ~/.local/share/Kingsoft/wps/jsaddons/wps-assistant_
 
 # 4. 创建 publish.xml（Linux 上也需要）
 cat > ~/.local/share/Kingsoft/wps/jsaddons/publish.xml << 'EOF'
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <jsplugins>
-  <jsplugin name="claude-assistant" type="wps,et,wpp" url="claude-assistant_/" enable="enable_dev"/>
+  <jsplugin name="wps-assistant" type="wps,et,wpp" url="wps-assistant_/" enable="enable_dev"/>
 </jsplugins>
 EOF
 
@@ -479,7 +484,7 @@ find / -path "*kingsoft/wps/jsaddons" -type d 2>/dev/null
 
 **解决方案**：
 
-已修复 `wps-claude-assistant/manifest.xml`，确保包含完整的 ribbon 和 scripts 声明。如果仍遇到此错误：
+已修复 `wps-assistant/manifest.xml`，确保包含完整的 ribbon 和 scripts 声明。如果仍遇到此错误：
 
 ```bash
 # 1. 检查 manifest.xml 是否包含 ribbon 和 scripts 声明
@@ -494,8 +499,8 @@ ls <加载项安装目录>/main.js
 
 # 3. 重新复制加载项（使用最新版本）
 # macOS:
-rm -rf ~/Library/Containers/com.kingsoft.wpsoffice.mac/Data/.kingsoft/wps/jsaddons/claude-assistant_
-cp -R <项目根目录>/wps-claude-assistant ~/Library/Containers/com.kingsoft.wpsoffice.mac/Data/.kingsoft/wps/jsaddons/claude-assistant_
+rm -rf ~/Library/Containers/com.kingsoft.wpsoffice.mac/Data/.kingsoft/wps/jsaddons/wps-assistant_
+cp -R <项目根目录>/wps-assistant ~/Library/Containers/com.kingsoft.wpsoffice.mac/Data/.kingsoft/wps/jsaddons/wps-assistant_
 
 # 4. 重启 WPS
 pkill -f wpsoffice

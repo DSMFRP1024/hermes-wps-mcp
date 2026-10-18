@@ -510,7 +510,7 @@ export const updateChartHandler: ToolHandler = async (
  * - 不经过剪贴板，无 PDF/截屏中转造成的失真
  *
  * 与 PPT 的 wps_ppt_export_slide_as_image 形成 Issue #15 Roadmap 双子工具，
- * 解决 Claude 通过 Python 转图片造成结构失真的痛点。
+ * 解决 AI 通过 Python 转图片造成结构失真的痛点。
  */
 export const exportChartAsImageDefinition: ToolDefinition = {
   name: 'wps_excel_export_chart_as_image',

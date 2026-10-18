@@ -4,11 +4,11 @@
 <!-- Pos: macOS 加载项清单入口。一旦我被修改，请更新我的头部注释，以及所属文件夹的md。 -->
 <manifest xmlns="http://schemas.wps.cn/oaassist/2019/manifest"
           xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
-    <id>claude-assistant</id>
+    <id>wps-assistant</id>
     <version>1.0.0</version>
-    <name>Claude助手</name>
-    <description>Claude AI 与 WPS Office 的桥接加载项（轮询模式）</description>
-    <author>WPS-Claude-Skills Team</author>
+    <name>WPS助手</name>
+    <description>WPS Office 的桥接加载项（轮询模式）</description>
+    <author>WPS-Skills Team</author>
 
     <!-- 支持的WPS应用类型 -->
     <hosts>

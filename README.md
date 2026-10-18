@@ -38,7 +38,7 @@ Hermes Agent
 wps-office-mcp  (node dist/index.js)
    │  HTTP 轮询，仅 127.0.0.1:58891
    ▼
-WPS 加载项「Claude助手」（WPS 内嵌 V8）
+WPS 加载项「WPS助手」（WPS 内嵌 V8）
    │  WPS JS API
    ▼
 你正在编辑的文档（内存对象）
@@ -68,9 +68,15 @@ WPS 加载项「Claude助手」（WPS 内嵌 V8）
 | 8 | `README.md` / `SKILL.md` | **替换** | 说明来源、改动、部署 |
 | 9 | `build/test_install.py` | **新增** | `install.sh` 的语义测试：合并、幂等、卸载不误伤他人配置 |
 | 10 | `build/test_verify_package.py` | **新增** | 校验器自身的回归测试（符号链接判定），不依赖宿主符号链接权限 |
+| 11 | `wps-assistant/**`、`install.sh`、`wps-addon/**` | **改名 + 去品牌** | 界面/文档不再出现第三方品牌：功能区显示「WPS助手」、注册 ID `wps-assistant`、源码目录 `wps-assistant/`。`install.sh` 会顺手清掉旧 ID 的注册项与目录（防升级后出现两个页签） |
 
-**完全没动**：`tools/**`、`server/**`、`client/wps-client.ts`、
-`wps-claude-assistant/**`（加载项本体）、`skills/**`。
+**完全没动**：`tools/**`、`server/**`、`client/wps-client.ts`。
+加载项本体除 `manifest.xml` / `ribbon.xml` 的显示名与 id、`main.js` 里 3 处
+`console.log` 文案外，业务实现零改动。
+
+> 界面显示名是我方自定义的，与上游品牌无关；上游原文说明存档在
+> `README.upstream.md`，那份文件**刻意未做替换**，以保留可核对的原始出处。
+
 
 ## 产出离线包
 
@@ -125,7 +131,7 @@ bash install.sh
 `publish.xml` 里的 `enable="enable_dev"` 是让它默认启用、并跳过 md5 校验，
 省掉在「加载项管理器」里手工勾选这一步。
 
-功能区没出现「Claude助手」时，按顺序查：
+功能区没出现「WPS助手」时，按顺序查：
 
 1. **装到了 root 名下** —— `sudo bash install.sh` 会把加载项写进
    `/root/.local/share/Kingsoft/wps/jsaddons/`，你用普通用户开 WPS 自然看不到。
@@ -133,7 +139,7 @@ bash install.sh
 2. **没真正重启** —— `ps -ef | grep -i wps` 还有残留就得全杀掉再开。
 3. **没有图形会话** —— ssh 无 X11/Wayland 转发时加载项不会加载，无报错。
 4. 以上都对仍不出现，看 `~/.local/share/Kingsoft/wps/jsaddons/publish.xml`
-   里有没有 `name="claude-assistant"`，以及目录是否叫 `claude-assistant_`（尾部下划线）。
+   里有没有 `name="wps-assistant"`，以及目录是否叫 `wps-assistant_`（尾部下划线）。
 
 ### 在 Hermes 注册 MCP
 
@@ -159,12 +165,12 @@ bash install.sh
 ```bash
 # 加载项是否注册成功
 cat ~/.local/share/Kingsoft/wps/jsaddons/publish.xml
-ls  ~/.local/share/Kingsoft/wps/jsaddons/claude-assistant_/
+ls  ~/.local/share/Kingsoft/wps/jsaddons/wps-assistant_/
 
 # 服务是否在跑（需 Hermes 已拉起 MCP）
 curl -s http://127.0.0.1:58891/status
 
-# 端到端：重启 WPS，功能区应出现「Claude助手」
+# 端到端：重启 WPS，功能区应出现「WPS助手」
 #         然后在 Hermes 里问「看看当前表格有哪些工作表」
 ```
 
@@ -190,10 +196,10 @@ bash install.sh --uninstall
 **什么都不删，全部改名留备份**：
 
 - 安装目录 → `~/.local/share/hermes-wps-mcp.bak.<时间戳>`
-- 加载项目录 → `jsaddons/claude-assistant_.bak.<时间戳>`
+- 加载项目录 → `jsaddons/wps-assistant_.bak.<时间戳>`
 - `publish.xml` 改前先 `cp` 一份 `.bak.<时间戳>`
 
-卸载只做两件事：从 `publish.xml` 摘掉 `name="claude-assistant"` 那一条（**别人的条目一条不碰**），
+卸载只做两件事：从 `publish.xml` 摘掉 `name="wps-assistant"` 那一条（**别人的条目一条不碰**），
 以及把上面三个位置改名。想回滚：把两个 `.bak` 改回原名即可。
 
 > 不用 `rm -rf` 是有原因的：部分环境把 `rm` 劫持成回收站 shim，

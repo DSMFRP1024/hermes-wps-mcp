@@ -5,8 +5,8 @@
 <customUI xmlns="http://schemas.microsoft.com/office/2006/01/customui" onLoad="OnAddinLoad">
     <ribbon startFromScratch="false">
         <tabs>
-            <tab id="tabClaude" label="Claude助手">
-                <group id="claudeGroup" label="COM桥接">
+            <tab id="tabWpsAssistant" label="WPS助手">
+                <group id="wpsGroup" label="COM桥接">
                     <button id="btnStatus" onAction="ribbonCheckStatus" label="连接状态" imageMso="Info"/>
                 </group>
             </tab>

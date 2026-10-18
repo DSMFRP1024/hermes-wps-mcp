@@ -4,7 +4,7 @@
 # 前置：本目录即离线包根目录，其中应包含
 #   wps-office-mcp/dist/         编译产物（含 index.js）
 #   wps-office-mcp/node_modules/ 生产依赖（已 prune，不含 jest/tsc）
-#   wps-claude-assistant/        WPS 加载项
+#   wps-assistant/        WPS 加载项
 #
 # 用法：
 #   bash install.sh --dry-run        # 只打印将要做什么
@@ -17,9 +17,9 @@
 
 set -euo pipefail
 
-ADDON_NAME="claude-assistant"
+ADDON_NAME="wps-assistant"
 ADDON_DIR_NAME="${ADDON_NAME}_"          # 尾部 _ 是 WPS jsaddons 规范
-ADDON_TAB_LABEL="Claude助手"
+ADDON_TAB_LABEL="WPS助手"
 
 PKG_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PREFIX="${HOME}/.local/share/hermes-wps-mcp"
@@ -158,9 +158,9 @@ head_ "2/5 校验离线包完整性"
 for f in \
   "wps-office-mcp/dist/index.js" \
   "wps-office-mcp/node_modules/@modelcontextprotocol/sdk/package.json" \
-  "wps-claude-assistant/manifest.xml" \
-  "wps-claude-assistant/ribbon.xml" \
-  "wps-claude-assistant/main.js"
+  "wps-assistant/manifest.xml" \
+  "wps-assistant/ribbon.xml" \
+  "wps-assistant/main.js"
 do
   if [ -e "${PKG_ROOT}/${f}" ]; then
     say "ok  $f"
@@ -176,22 +176,34 @@ head_ "3/5 部署 MCP 服务 -> $PREFIX"
 
 run "mkdir -p '$PREFIX'"
 run "cp -a '${PKG_ROOT}/wps-office-mcp' '${PREFIX}/'"
-run "cp -a '${PKG_ROOT}/wps-claude-assistant' '${PREFIX}/'"
-# 让 switchApp 里的相对路径（../../../wps-claude-assistant）依然成立：
+run "cp -a '${PKG_ROOT}/wps-assistant' '${PREFIX}/'"
+# 让 switchApp 里的相对路径（../../../wps-assistant）依然成立：
 #   $PREFIX/wps-office-mcp/dist/client  -> 三次上跳 = $PREFIX
-say "目录结构保持 wps-office-mcp 与 wps-claude-assistant 同级（路径依赖）"
+say "目录结构保持 wps-office-mcp 与 wps-assistant 同级（路径依赖）"
 
 # ---------------------------------------------------------------- 注册加载项
 
 head_ "4/5 注册 WPS 加载项 -> ${JSDADDONS}/${ADDON_DIR_NAME}"
 
 run "mkdir -p '$JSDADDONS'"
+
+# 旧品牌 ID 迁移。早期版本把加载项注册成 claude-assistant，改名后若不清理，
+# publish.xml 里会留一条指向已失效目录的旧条目（功能区可能出现两个页签，
+# 或页面加载报错）。这里把旧目录移到备份、旧条目从 publish.xml 摘掉。
+# 这个字面量是**兼容常量**，仅用于识别并清理旧版残留，不是界面文案。
+LEGACY_ADDON_ID="claude-assistant"
+if [ -e "${JSDADDONS}/${LEGACY_ADDON_ID}_" ]; then
+  BK="${JSDADDONS}/${LEGACY_ADDON_ID}_.bak.$(date +%Y%m%d%H%M%S)"
+  run "mv '${JSDADDONS}/${LEGACY_ADDON_ID}_' '$BK'"
+  say "清理旧版加载项目录，已移到: $BK"
+fi
+
 if [ -e "${JSDADDONS}/${ADDON_DIR_NAME}" ]; then
   BK="${JSDADDONS}/${ADDON_DIR_NAME}.bak.$(date +%Y%m%d%H%M%S)"
   run "mv '${JSDADDONS}/${ADDON_DIR_NAME}' '$BK'"
   say "已有同名加载项，已移到: $BK"
 fi
-run "cp -a '${PKG_ROOT}/wps-claude-assistant' '${JSDADDONS}/${ADDON_DIR_NAME}'"
+run "cp -a '${PKG_ROOT}/wps-assistant' '${JSDADDONS}/${ADDON_DIR_NAME}'"
 
 if [ -f "$PUBLISH_XML" ]; then
   run "cp -a '$PUBLISH_XML' '${PUBLISH_XML}.bak.$(date +%Y%m%d%H%M%S)'"
@@ -221,10 +233,15 @@ if os.path.exists(path):
 else:
     root = ET.Element("jsplugins")
 
-# 幂等 + 不覆盖他人条目：只摘掉同名的那一条
+# 幂等 + 不覆盖他人条目：摘掉同名条目，以及旧品牌版本残留的那一条。
+# （旧 ID 只在升级路径上出现；不清理会导致功能区出现重复页签）
+LEGACY = "claude-assistant"
 for n in list(root):
     if n.get("name") == name:
         root.remove(n)
+    elif n.get("name") == LEGACY:
+        root.remove(n)
+        print("  已移除旧版注册项: %s（兼容清理）" % LEGACY)
 
 el = ET.SubElement(root, "jsplugin")
 el.set("name", name)

@@ -188,8 +188,8 @@ if (-not $SkipWpsAddon) {
         exit 1
     }
 
-    $SourceAddonDir = "$ProjectRoot\wps-claude-addon"
-    $TargetAddonDir = "$WpsAddonDir\wps-claude-addon_"
+    $SourceAddonDir = "$ProjectRoot\wps-addon"
+    $TargetAddonDir = "$WpsAddonDir\wps-addon_"
 
     if (-not (Test-Path $SourceAddonDir)) {
         Write-Error-Msg "Add-on source directory not found: $SourceAddonDir"
@@ -204,12 +204,12 @@ if (-not $SkipWpsAddon) {
     Write-Success "Add-on files copied"
 
     $PublishXmlPath = "$WpsAddonDir\publish.xml"
-    $AddonEntry = '<jsplugin type="wps,et,wpp" enable="enable_dev" name="wps-claude-addon" url="wps-claude-addon_"/>'
+    $AddonEntry = '<jsplugin type="wps,et,wpp" enable="enable_dev" name="wps-addon" url="wps-addon_"/>'
 
     if (Test-Path $PublishXmlPath) {
         $content = Get-Content $PublishXmlPath -Raw -Encoding UTF8
 
-        if ($content -notmatch "wps-claude-addon") {
+        if ($content -notmatch "wps-addon") {
             $content = $content -replace "</jsplugins>", "    $AddonEntry`n</jsplugins>"
             Set-Content $PublishXmlPath $content -Encoding UTF8 -NoNewline
             Write-Success "publish.xml updated"
@@ -276,7 +276,7 @@ if ($InstalledSkills.Count -eq $SkillsList.Count) {
 
 if (-not $SkipWpsAddon) {
     Write-Host "`n[WPS Add-on]" -ForegroundColor Cyan
-    if (Test-Path "$WpsAddonDir\wps-claude-addon_") {
+    if (Test-Path "$WpsAddonDir\wps-addon_") {
         Write-Success "Add-on files in place"
     } else {
         Write-Error-Msg "Add-on files not found"
@@ -285,10 +285,10 @@ if (-not $SkipWpsAddon) {
 
     if (Test-Path "$WpsAddonDir\publish.xml") {
         $content = Get-Content "$WpsAddonDir\publish.xml" -Raw -Encoding UTF8
-        if ($content -match "wps-claude-addon") {
+        if ($content -match "wps-addon") {
             Write-Success "publish.xml configured"
         } else {
-            Write-Error-Msg "wps-claude-addon not found in publish.xml"
+            Write-Error-Msg "wps-addon not found in publish.xml"
             $VerifyPassed = $false
         }
     }

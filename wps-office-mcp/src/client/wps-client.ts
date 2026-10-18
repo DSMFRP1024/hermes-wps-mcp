@@ -31,7 +31,7 @@ import { macPollServer } from './mac-poll-server';
 const PLATFORM = os.platform();
 const IS_MAC = PLATFORM === 'darwin';
 const IS_LINUX = PLATFORM === 'linux';
-// Mac 和 Linux 均通过反向轮询（wps-claude-assistant 加载项 HTTP 轮询模式），仅 Windows 走 PowerShell COM
+// Mac 和 Linux 均通过反向轮询（wps-assistant 加载项 HTTP 轮询模式），仅 Windows 走 PowerShell COM
 const USE_POLL = IS_MAC || IS_LINUX;
 
 // PowerShell脚本路径 (Windows)

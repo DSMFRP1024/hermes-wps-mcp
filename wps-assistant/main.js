@@ -2,7 +2,7 @@
  * Input: MCP Server 指令与加载项事件
  * Output: WPS 应用侧执行结果
  * Pos: macOS WPS 加载项主入口。一旦我被修改，请更新我的头部注释，以及所属文件夹的md。
- * Claude助手 - Mac版（轮询模式）
+ * WPS助手 - macOS/Linux 版（轮询模式）
  * 加载项作为HTTP客户端，轮询MCP Server获取命令
  *
  * 架构：MCP Server (HTTP服务端:58891) ← 轮询 ← WPS加载项 (HTTP客户端)
@@ -23,14 +23,14 @@ var _isPolling = false;
 
 function OnAddinLoad(ribbonUI) {
     _ribbonUI = ribbonUI;
-    console.log('=== Claude助手 (轮询模式) 加载中 ===');
+    console.log('=== WPS助手 (轮询模式) 加载中 ===');
     startPolling();
     return true;
 }
 
 function OnStatusClick() {
     var status = _isPolling ? '轮询中 (间隔: ' + CONFIG.POLL_INTERVAL + 'ms)' : '已停止';
-    alert('Claude助手 状态: ' + status + '\n服务器: ' + CONFIG.SERVER_URL);
+    alert('WPS助手 状态: ' + status + '\n服务器: ' + CONFIG.SERVER_URL);
     return true;
 }
 

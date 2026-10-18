@@ -1,7 +1,7 @@
 {
   "name": "wps-skills",
   "version": "1.0.0",
-  "description": "WPS Office AI智能助手 - 通过MCP协议让Claude操控WPS Office",
+  "description": "WPS Office AI智能助手 - 通过 MCP 协议操控 WPS Office",
   "author": "老王 <laowang@wujindian.com>",
   "license": "MIT",
   "private": true,
@@ -20,7 +20,7 @@
     "wps",
     "office",
     "mcp",
-    "claude",
+    "wps",
     "ai",
     "automation"
   ],

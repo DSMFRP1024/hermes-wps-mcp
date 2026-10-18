@@ -138,8 +138,8 @@ coverage/
 # WPS 相关
 # ============================================
 # WPS 加载项运行时文件
-wps-claude-addon/logs/
-wps-claude-addon/.cache/
+wps-addon/logs/
+wps-addon/.cache/
 
 # WPS 临时文件
 *.wps

@@ -5,7 +5,7 @@
 # 内容：
 #   wps-office-mcp/dist/          编译产物
 #   wps-office-mcp/node_modules/  生产依赖（--omit=dev，不含 jest/tsc）
-#   wps-claude-assistant/         WPS 加载项
+#   wps-assistant/         WPS 加载项
 #   install.sh / README.md / SKILL.md
 #
 # 目标机不需要 npm、不需要外网、不需要图形会话。
@@ -81,11 +81,11 @@ sys.exit(1 if broken else 0)
 PYEOF
 
 head_ "复制加载项与文档"
-cp -a "${PKG_ROOT}/wps-claude-assistant" "${STAGE}/"
+cp -a "${PKG_ROOT}/wps-assistant" "${STAGE}/"
 cp -a "${PKG_ROOT}/install.sh" "${STAGE}/"
 [ -f "${PKG_ROOT}/README.md" ] && cp -a "${PKG_ROOT}/README.md" "${STAGE}/"
 [ -f "${PKG_ROOT}/SKILL.md" ] && cp -a "${PKG_ROOT}/SKILL.md" "${STAGE}/"
-say "加载项: $(find "${STAGE}/wps-claude-assistant" -type f | wc -l) 个文件"
+say "加载项: $(find "${STAGE}/wps-assistant" -type f | wc -l) 个文件"
 
 head_ "写版本信息"
 GIT_SHA="$(git -C "$PKG_ROOT" rev-parse HEAD 2>/dev/null || echo unknown)"

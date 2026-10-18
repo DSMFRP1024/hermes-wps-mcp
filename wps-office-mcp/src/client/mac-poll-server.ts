@@ -465,8 +465,8 @@ class MacPollServer {
       return;
     }
 
-    // wps-auto.sh脚本路径 - 在wps-claude-assistant目录下
-    const scriptPath = path.join(__dirname, '../../../wps-claude-assistant/wps-auto.sh');
+    // wps-auto.sh脚本路径 - 在wps-assistant目录下
+    const scriptPath = path.join(__dirname, '../../../wps-assistant/wps-auto.sh');
 
     return new Promise((resolve, _reject) => {
       log.info(`[Mac] Executing switch script: ${scriptPath} switch ${app}`);
