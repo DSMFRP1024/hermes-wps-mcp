@@ -99,7 +99,15 @@ if [ "$UNINSTALL" = "1" ]; then
     say "安装目录不存在，跳过"
   fi
 
-  run "rm -rf '${JSDADDONS}/${ADDON_DIR_NAME}'"
+  # 卸载也不直接删：移到备份目录，出问题能立刻搬回去。
+  # （不用 rm -rf：某些环境把 rm 劫持成回收站 shim，会阻塞或直接失败）
+  if [ -d "${JSDADDONS}/${ADDON_DIR_NAME}" ]; then
+    ABK="${JSDADDONS}/${ADDON_DIR_NAME}.bak.$(date +%Y%m%d%H%M%S)"
+    run "mv '${JSDADDONS}/${ADDON_DIR_NAME}' '$ABK'"
+    say "加载项已移到备份: $ABK（未删除）"
+  else
+    say "加载项目录不存在，跳过"
+  fi
   if [ -f "$PUBLISH_XML" ]; then
     run "cp -a '$PUBLISH_XML' '${PUBLISH_XML}.bak.$(date +%Y%m%d%H%M%S)'"
     if [ -n "$PY" ]; then

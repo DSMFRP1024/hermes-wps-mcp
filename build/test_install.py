@@ -19,6 +19,20 @@ import xml.etree.ElementTree as ET
 PKG = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 BASH = os.environ.get("WPS_TEST_BASH", "bash")
 
+# 真包带 node_modules（4748 个文件），Windows 上复制一次要几分钟；
+# install.sh 的校验段只判断文件是否存在，所以本地调试可用桩包：
+#   WPS_TEST_STUB=1 python3 build/test_install.py
+# CI 里不要设它 —— 必须用真包跑。
+STUB = os.environ.get("WPS_TEST_STUB") == "1"
+
+STUB_FILES = [
+    "wps-office-mcp/dist/index.js",
+    "wps-office-mcp/node_modules/@modelcontextprotocol/sdk/package.json",
+    "wps-claude-assistant/manifest.xml",
+    "wps-claude-assistant/ribbon.xml",
+    "wps-claude-assistant/main.js",
+]
+
 SEED = """<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <jsplugins>
   <jsplugin name="other-vendor" type="et" url="other_/" enable="enable_dev"/>
@@ -57,8 +71,26 @@ def clean(path):
         pass
 
 
+def make_stub_pkg(root):
+    """在 root 下造一个「只有文件形状」的包，用于快速验证安装语义。"""
+    pkg = os.path.join(root, "pkg")
+    for rel in STUB_FILES:
+        p = os.path.join(pkg, rel)
+        os.makedirs(os.path.dirname(p), exist_ok=True)
+        with open(p, "w", encoding="utf-8") as fh:
+            fh.write("stub\n")
+    with open(os.path.join(PKG, "install.sh"), "rb") as a, \
+            open(os.path.join(pkg, "install.sh"), "wb") as b:
+        b.write(a.read())
+    return pkg
+
+
 def main():
+    global PKG
     tmp = tempfile.mkdtemp(prefix="wpsinstall-")
+    if STUB:
+        PKG = make_stub_pkg(tmp)
+        print("== 桩包模式（WPS_TEST_STUB=1）：跳过 node_modules 复制 ==")
     prefix = os.path.join(tmp, "prefix")
     jsd = os.path.join(tmp, "jsaddons")
     pub = os.path.join(jsd, "publish.xml")
