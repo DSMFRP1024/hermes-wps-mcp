@@ -6,8 +6,20 @@
 
 - 上游 pin：`a82533662268b3245f93d8685bc45dffede048b6`
 - 许可：MIT（与上游一致）
-- 本仓库**不是重写**，是 fork + 环境适配。业务逻辑（243 个工具的实现）一行没动。
+- **不是重写**，是 clone + 环境适配。业务逻辑（243 个工具的实现）一行没动。
 - 上游原始说明保留在 [`README.upstream.md`](README.upstream.md)
+
+关于「为什么不直接在 GitHub 上 fork」：本仓库是**独立仓库**，但保留了完整上游历史
+（首个提交的父提交就是上游 pin），并且配了 `upstream` remote。这样上游后续修复仍能合并：
+
+```bash
+git remote add upstream https://github.com/lc2panda/wps-skills.git   # 已配置则跳过
+git fetch upstream main
+git merge upstream/main        # 或 git diff upstream/main 只看我们改了什么
+```
+
+GitHub 上的「Forked from」标识是没有的 —— 这是一个内网适配发布仓库，
+需要打自己的 release 产物、写自己的 README，独立更清晰。
 
 ## 能力
 
@@ -52,6 +64,8 @@ WPS 加载项「Claude助手」（WPS 内嵌 V8）
 | 6 | `build/verify_package.py` | **新增** | CI 与本地同一份校验规则 |
 | 7 | `.github/workflows/build.yml` | **新增** | 目标机是 aarch64，x86 上跑绿没意义 |
 | 8 | `README.md` / `SKILL.md` | **替换** | 说明来源、改动、部署 |
+| 9 | `build/test_install.py` | **新增** | `install.sh` 的语义测试：合并、幂等、卸载不误伤他人配置 |
+| 10 | `build/test_verify_package.py` | **新增** | 校验器自身的回归测试（符号链接判定），不依赖宿主符号链接权限 |
 
 **完全没动**：`tools/**`、`server/**`、`client/wps-client.ts`、
 `wps-claude-assistant/**`（加载项本体）、`skills/**`。
@@ -134,4 +148,25 @@ curl -s http://127.0.0.1:58891/status
 bash install.sh --uninstall
 ```
 
-安装目录移到 `*.bak.<时间戳>`（不删除），`publish.xml` 改前已备份。
+**什么都不删，全部改名留备份**：
+
+- 安装目录 → `~/.local/share/hermes-wps-mcp.bak.<时间戳>`
+- 加载项目录 → `jsaddons/claude-assistant_.bak.<时间戳>`
+- `publish.xml` 改前先 `cp` 一份 `.bak.<时间戳>`
+
+卸载只做两件事：从 `publish.xml` 摘掉 `name="claude-assistant"` 那一条（**别人的条目一条不碰**），
+以及把上面三个位置改名。想回滚：把两个 `.bak` 改回原名即可。
+
+> 不用 `rm -rf` 是有原因的：部分环境把 `rm` 劫持成回收站 shim，
+> 会阻塞或直接失败；而且删了之后回滚只能重装。
+
+## 本地快速跑测试
+
+Windows / 无 `node_modules` 的环境也能跑安装语义测试：
+
+```bash
+WPS_TEST_STUB=1 python3 build/test_install.py     # 桩包，秒级
+python3 build/test_verify_package.py              # 校验器回归测试
+```
+
+CI 不设 `WPS_TEST_STUB`，始终用真包 —— 防止「桩包绿了真包红」。

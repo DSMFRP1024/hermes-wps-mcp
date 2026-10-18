@@ -88,6 +88,12 @@ jobs:
           bash -n build/package_offline.sh
           python3 -c "import ast;ast.parse(open('build/verify_package.py',encoding='utf-8').read())"
 
+      - name: 校验器自身的回归测试（符号链接判定）
+        # 用 TarInfo 直接构造符号链接条目，不依赖 runner 权限。
+        # 防的是「tar 成员名带 ./ 前缀、normpath 后又没了」这类判定错，
+        # 这种错会让所有链接被误报悬空，或真的悬空被放过。
+        run: python3 build/test_verify_package.py
+
       - name: 组装离线包
         run: bash build/package_offline.sh
 

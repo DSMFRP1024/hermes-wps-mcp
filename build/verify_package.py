@@ -157,14 +157,24 @@ def main():
         ok("自有产物无 .ts 源码")
 
     print("\n[5] 符号链接安全性")
+    # tar 成员名带 "./" 前缀（`./a/x`），而 posixpath.normpath() 规范化后会
+    # 把 `./a/.bin/x/../x` 变成 `a/x`（丢掉 `./`）。不统一就会两边永不相等，
+    # 导致**所有**符号链接都被判悬空。所以先做一次归一化。
+    def norm(name):
+        return name[2:] if name.startswith("./") else name
+
+    names_norm = set(norm(n) for n in names)
     dangling = []
     relative_bad = []
     for m in links:
-        if os.path.isabs(m.linkname):
+        # tar 里的路径是 POSIX 语义，必须用 posixpath.isabs 判断；
+        # os.path.isabs 在 Windows 上会把 "/usr/bin/x" 判成相对路径。
+        if posixpath.isabs(m.linkname):
             relative_bad.append("%s -> %s" % (m.name, m.linkname))
             continue
-        target = posixpath.normpath(posixpath.join(posixpath.dirname(m.name), m.linkname))
-        if target not in nameset and not any(n.startswith(target + "/") for n in names):
+        base = posixpath.dirname(norm(m.name))
+        target = posixpath.normpath(posixpath.join(base, m.linkname))
+        if target not in names_norm and not any(n.startswith(target + "/") for n in names_norm):
             dangling.append("%s -> %s (=%s)" % (m.name, m.linkname, target))
     if relative_bad:
         bad("符号链接必须相对", "%d 个绝对指向，例如 %s" % (len(relative_bad), relative_bad[0]))
