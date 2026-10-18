@@ -1,153 +1,137 @@
-# WPS Skills
+# Hermes WPS MCP
 
-> 此项目的任何功能、架构更新，必须在结束后同步更新相关文档。这是我们契约的一部分。
+上游 [`lc2panda/wps-skills`](https://github.com/lc2panda/wps-skills) 的**离线部署适配版**，
+用于内网 aarch64 Linux（银河麒麟 V10 / 统信 UOS 20 / openEuler）上，
+让 Hermes Agent 通过 MCP 直接操作正在运行的 WPS 文档。
 
-AI编程助手通过自然语言操控WPS Office的MCP工具集。
+- 上游 pin：`a82533662268b3245f93d8685bc45dffede048b6`
+- 许可：MIT（与上游一致）
+- 本仓库**不是重写**，是 fork + 环境适配。业务逻辑（243 个工具的实现）一行没动。
+- 上游原始说明保留在 [`README.upstream.md`](README.upstream.md)
 
-## 项目定位
+## 能力
 
-本项目是MCP Server + Skills框架，让AI助手（Claude Code/Cursor/Augment等）能操控WPS Office。
-- 231个MCP专业工具 + 12个内置工具 = 243个
-- 支持Excel(82工具) / Word(28工具) / PPT(112工具) / 通用(9工具)
-- 支持macOS、Windows、Linux
+243 个工具：231 个专业工具 + 12 个内置工具，覆盖 Excel 82 / Word 28 / PPT 112 / 通用 21。
 
-## 前提条件
+能做到「实时」是因为加载项跑在 WPS 自己的 V8 引擎里，直接操作文档对象模型：
+**改动立刻上屏、格式自动继承、不与用户的 Ctrl+S 冲突**。
+MCP Server 不碰文件，只把命令排进队列，等加载项轮询取走。
 
-- 已安装 WPS Office（https://www.wps.cn/ 或 https://www.wps.com/）
-- Node.js >= 18.0.0
-- Git
-
-## 自动安装（AI执行）
-
-以下步骤由AI助手自动执行。需要人类交互的步骤标注 ⚠️。
-
-### 步骤1: 克隆项目
-
-```bash
-git clone https://github.com/lc2panda/wps-skills.git
-cd wps-skills
+```
+Hermes Agent
+   │  MCP (stdio)
+   ▼
+wps-office-mcp  (node dist/index.js)
+   │  HTTP 轮询，仅 127.0.0.1:58891
+   ▼
+WPS 加载项「Claude助手」（WPS 内嵌 V8）
+   │  WPS JS API
+   ▼
+你正在编辑的文档（内存对象）
 ```
 
-如果项目已存在，跳过此步。
+## 三端
 
-### 步骤2: 安装依赖并编译
+| 平台 | 通道 | 本仓库状态 |
+|---|---|---|
+| **Linux** | 反向轮询（与 macOS 共用一套） | **适配目标，CI 覆盖** |
+| macOS | 反向轮询 | 上游支持，未验证 |
+| Windows | PowerShell + COM | 上游支持，未验证 |
+
+## 相对上游改了什么
+
+只有下面这些，逐条列出便于对照回滚。
+
+| # | 文件 | 改动 | 原因 |
+|---|---|---|---|
+| 1 | `wps-office-mcp/src/client/mac-poll-server.ts` | `switchApp()` 开头加 Linux 分支直接返回 | 原实现调 `wps-auto.sh`，其 `start_app()` 用 macOS 的 `open` 命令（Linux 没有），pptx 分支还依赖 `python-pptx`。内网场景 Hermes 常驻、WPS 用户自己开，无需拉起/杀进程 |
+| 2 | `install.sh` | **新增** | 上游 `scripts/install.sh` 到处是 `claude mcp add`、`~/.claude/skills`、联网检查 |
+| 3 | `build/test_poll_protocol.mjs` | **新增** | 上游**零测试**：`jest.config.js` 指向的 `src/tests/setup.ts` 根本不存在，`npm test` 必然失败 |
+| 4 | `build/verify_dist.mjs` | **新增** | 拦「编译绿了但产物不可用」 |
+| 5 | `build/package_offline.sh` | **新增** | 内网无 npm，必须自带 `node_modules` |
+| 6 | `build/verify_package.py` | **新增** | CI 与本地同一份校验规则 |
+| 7 | `.github/workflows/build.yml` | **新增** | 目标机是 aarch64，x86 上跑绿没意义 |
+| 8 | `README.md` / `SKILL.md` | **替换** | 说明来源、改动、部署 |
+
+**完全没动**：`tools/**`、`server/**`、`client/wps-client.ts`、
+`wps-claude-assistant/**`（加载项本体）、`skills/**`。
+
+## 产出离线包
+
+联网机或 CI：
 
 ```bash
-cd wps-office-mcp
-npm install
-npm run build
-cd ..
+cd wps-office-mcp && npm ci && npx tsc -p tsconfig.json && cd ..
+node build/verify_dist.mjs
+node build/test_poll_protocol.mjs
+bash build/package_offline.sh
+# -> dist-pkg/wps-mcp-offline-aarch64.tar.gz + .sha256
 ```
 
-### 步骤3: 配置MCP Server
+或直接取 CI artifact（workflow `build-wps-mcp`，runner `ubuntu-24.04-arm`）。
 
-根据使用的AI工具，将以下配置写入对应文件。注意将路径替换为实际的项目绝对路径。
+## 内网安装
 
-**Claude Code** — 写入 `~/.claude/settings.json`：
+```bash
+tar -xzf wps-mcp-offline-aarch64.tar.gz -C wps-mcp
+cd wps-mcp
+bash install.sh --dry-run     # 先看它要做什么
+bash install.sh
+```
+
+`install.sh` 依次做：探测 node/WPS → 校验包完整性 → 部署服务与加载项 →
+**合并**（非覆盖）`publish.xml`（改前备份）→ 重启 WPS → 打印 MCP 配置片段。
+
+### 在 Hermes 注册 MCP
+
 ```json
 {
-  "mcpServers": {
-    "wps-office": {
-      "command": "node",
-      "args": ["/你的路径/wps-skills/wps-office-mcp/dist/index.js"]
-    }
+  "wps-office": {
+    "command": "/path/to/node",
+    "args": ["/home/<user>/.local/share/hermes-wps-mcp/wps-office-mcp/dist/index.js"],
+    "env": { "WPS_MCP_PORT": "58891" }
   }
 }
 ```
 
-**Cursor** — 写入项目根目录 `.cursor/mcp.json`：
-```json
-{
-  "mcpServers": {
-    "wps-office": {
-      "command": "node",
-      "args": ["/你的路径/wps-skills/wps-office-mcp/dist/index.js"]
-    }
-  }
-}
-```
+## 启动顺序（重要）
 
-**OpenAI Codex CLI** — 写入 `~/.codex/config.toml`：
-```toml
-[mcp_servers.wps-office]
-command = "node"
-args = ["/你的路径/wps-skills/wps-office-mcp/dist/index.js"]
-```
-或命令行注册：`codex mcp add wps-office -- node /你的路径/wps-skills/wps-office-mcp/dist/index.js`
+**先起 Hermes（含 MCP），再开 WPS。**
 
-**Augment / 其他MCP兼容IDE** — 参考各IDE的MCP Server配置文档，使用相同的command和args。本项目 MCP Server 为标准 stdio 实现（spec 2025-11-25），与所有 MCP 一等客户端（Claude Code / Cursor / Codex CLI / GitHub Copilot CLI / Windsurf 等）兼容。
+反之在麒麟上有已知问题：WPS 已运行后再起 MCP Server，WPS 进程可能异常退出
+（上游 Issue #17）。Hermes 常驻这一点天然满足正确顺序。
 
-### 步骤4: 安装WPS加载项
-
-⚠️ 需要人工操作（AI无法直接操作WPS应用）：
+## 验证
 
 ```bash
-# macOS
-bash scripts/auto-install-mac.sh
+# 加载项是否注册成功
+cat ~/.local/share/Kingsoft/wps/jsaddons/publish.xml
+ls  ~/.local/share/Kingsoft/wps/jsaddons/claude-assistant_/
 
-# Windows (PowerShell)
-powershell scripts/install.ps1
+# 服务是否在跑（需 Hermes 已拉起 MCP）
+curl -s http://127.0.0.1:58891/status
 
-# Linux
-bash scripts/install.sh
+# 端到端：重启 WPS，功能区应出现「Claude助手」
+#         然后在 Hermes 里问「看看当前表格有哪些工作表」
 ```
 
-⚠️ 安装后必须重启WPS Office才能生效。
+日志：`~/.wps-office-mcp/logs/combined.log` / `error.log`。
 
-### 步骤5: 安装Skills（仅Claude Code需要）
+## 已知限制
+
+- **必须有图形会话**。加载项的宿主是运行中的 WPS 进程；无头服务器上整条链不成立。
+- **只能操作活动文档**。WPS JS API 是 `ActiveWorkbook` / `ActiveDocument` 语义。
+- **同机**。加载项与 MCP Server 必须同机，走 `127.0.0.1`。
+- **加载项注册机制脆弱**。目录名尾部 `_`、`publish.xml` 的 `url` 前缀、
+  `oem.ini` 的 `JsApiPlugin`，任一不符就**静默不加载**，零报错。
+- **ARM64 的 WPS 无公开下载**。需从统信/麒麟 OEM 渠道或已预装整机获取，
+  注意 OEM 授权与机器绑定。
+- **测试覆盖有限**。补的协议测试只覆盖轮询链路，不覆盖 243 个工具的语义。
+
+## 卸载
 
 ```bash
-# 创建skills目录（如不存在）
-mkdir -p ~/.claude/skills
-
-# 创建符号链接
-ln -sf "$(pwd)/skills/wps-excel" ~/.claude/skills/wps-excel
-ln -sf "$(pwd)/skills/wps-word" ~/.claude/skills/wps-word
-ln -sf "$(pwd)/skills/wps-ppt" ~/.claude/skills/wps-ppt
-ln -sf "$(pwd)/skills/wps-office" ~/.claude/skills/wps-office
+bash install.sh --uninstall
 ```
 
-### 步骤6: 验证安装
-
-```bash
-# 验证MCP Server可启动
-node wps-office-mcp/dist/index.js &
-# 应看到 "MCP Server started successfully" 日志
-kill %1 2>/dev/null
-```
-
-## 架构
-
-```
-Skills层(SKILL.md自然语言指导)
-  ↓ Claude Code调用
-MCP Server层(239个工具)
-  ↓ wpsClient.executeMethod()
-执行层
-  ├── macOS: wps-claude-assistant (227 action, HTTP轮询)
-  └── Windows: wps-com.ps1 (231 action, COM接口)
-```
-
-## 工具清单
-
-| 应用 | 工具数 | 主要能力 |
-|------|--------|---------|
-| Excel | 82 | 公式/数据/图表/透视表/工作表/格式/工作簿/行列/批注保护/图片导出 |
-| Word | 28 | 格式/内容/文档管理/页眉页脚/批注/模板填写/段落结构 |
-| PPT | 112 | 幻灯片/形状/图片/表格/美化/动画/图表/3D/数据可视化/图片导出 |
-| 通用 | 9 | 保存/连接检测/文本选取/格式转换 |
-| 内置 | 12 | 连接检查/万能方法调用/数据缓存 |
-
-## 故障排除
-
-| 问题 | 解决方案 |
-|------|---------|
-| MCP连接失败 | 确认 `npm install && npm run build` 已执行，检查dist/index.js存在 |
-| WPS未响应 | 重启WPS Office，确认加载项已安装 |
-| "arguments error" | 重新运行安装脚本，重启WPS |
-| Linux找不到插件 | 查看INSTALL.md中的Linux专用指南 |
-| 工具调用返回null | 确认WPS中已打开对应类型的文档 |
-
-## 许可证
-
-MIT
+安装目录移到 `*.bak.<时间戳>`（不删除），`publish.xml` 改前已备份。

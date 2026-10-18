@@ -1,0 +1,107 @@
+name: build-wps-mcp
+
+# 只在 arm64 上构建与测试 —— 目标机就是 aarch64，
+# 在 x86 上跑绿了不代表 arm64 可用（node_modules 里若有原生模块会直接暴露）。
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+defaults:
+  run:
+    shell: bash
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: build+test (node ${{ matrix.node }} / arm64)
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        node: ['22', '24']
+
+    steps:
+      - name: 检出
+        uses: actions/checkout@v4
+
+      - name: 安装 Node ${{ matrix.node }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+
+      - name: 打印环境
+        run: |
+          set -euo pipefail
+          echo "arch   : $(uname -m)"
+          echo "node   : $(node -v)"
+          echo "npm    : $(npm -v)"
+
+      # npm 11.10–11.16 有已知崩坏（"Exit handler never called"），
+      # 落在这个区间就降级到 10.9.2。11.12.1 实测会崩。
+      - name: 规避开 npm 坏版本
+        run: |
+          set -euo pipefail
+          cur="$(npm -v)"
+          case "$cur" in
+            11.1[0-6].*)
+              echo "npm $cur 在坏区间，降级到 10.9.2"
+              npm install -g npm@10.9.2 --no-audit --no-fund
+              ;;
+            *)
+              echo "npm $cur 无需处理"
+              ;;
+          esac
+          npm -v
+
+      - name: 安装依赖
+        working-directory: wps-office-mcp
+        run: npm ci --no-audit --no-fund
+
+      - name: 编译 TypeScript
+        working-directory: wps-office-mcp
+        run: npx tsc -p tsconfig.json
+
+      - name: 校验产物完整性
+        run: node build/verify_dist.mjs
+
+      - name: 协议联动测试（伪造 WPS 加载项）
+        run: node build/test_poll_protocol.mjs
+
+      - name: 校验 install.sh 语法
+        run: bash -n install.sh
+
+      - name: 安装脚本集成测试（合并 / 幂等 / 卸载）
+        # 不需要 WPS、不需要图形会话：只验证「不破坏目标机已有配置」的语义
+        run: python3 build/test_install.py
+        env:
+          WPS_TEST_BASH: bash
+
+      - name: 校验打包脚本语法
+        run: |
+          set -euo pipefail
+          bash -n build/package_offline.sh
+          python3 -c "import ast;ast.parse(open('build/verify_package.py',encoding='utf-8').read())"
+
+      - name: 组装离线包
+        run: bash build/package_offline.sh
+
+      - name: 校验离线包
+        run: python3 build/verify_package.py dist-pkg/wps-mcp-offline-$(uname -m).tar.gz
+
+      - name: 上传离线包
+        # 只从 node 22 那一路取产物，避免两份同名附件
+        if: matrix.node == '22'
+        uses: actions/upload-artifact@v4
+        with:
+          name: wps-mcp-offline-arm64
+          path: |
+            dist-pkg/*.tar.gz
+            dist-pkg/*.sha256
+          if-no-files-found: error
+          retention-days: 30

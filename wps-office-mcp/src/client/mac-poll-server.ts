@@ -454,6 +454,17 @@ class MacPollServer {
    * 调用wps-auto.sh脚本自动关闭当前应用并启动目标应用
    */
   private async switchApp(app: string): Promise<void> {
+    // Hermes 适配（内网 Linux 部署）：不自动切换应用。
+    //   wps-auto.sh 是 macOS 版，start_app() 用的是 `open` 命令，Linux 上没有；
+    //   且它的 pptx 分支还依赖 python-pptx，内网机器通常没装。
+    //   内网场景下 Hermes 常驻、WPS 由用户自己打开，不需要我们拉起或杀死进程。
+    //   跳过可以避免：每切一次白等 2 秒 + 打一条误导性的 error 日志。
+    if (process.platform === 'linux') {
+      log.info(`[Linux] 跳过自动切换应用（${app}）：请确保 WPS 已打开且为对应组件`);
+      this.currentApp = app;
+      return;
+    }
+
     // wps-auto.sh脚本路径 - 在wps-claude-assistant目录下
     const scriptPath = path.join(__dirname, '../../../wps-claude-assistant/wps-auto.sh');
 

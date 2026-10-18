@@ -1,0 +1,22 @@
+# 全部强制 LF —— 目标机是 Linux，CRLF 会让 shell 脚本报
+# "/bin/bash^M: bad interpreter"，而这类错误在 CI 的 Linux 上才会暴露。
+* text=auto eol=lf
+
+*.sh    text eol=lf
+*.bash  text eol=lf
+*.py    text eol=lf
+*.mjs   text eol=lf
+*.js    text eol=lf
+*.ts    text eol=lf
+*.json  text eol=lf
+*.yml   text eol=lf
+*.yaml  text eol=lf
+*.xml   text eol=lf
+*.md    text eol=lf
+
+# 二进制：不要做换行转换
+*.png   binary
+*.jpg   binary
+*.ico   binary
+*.gz    binary
+*.7z    binary
