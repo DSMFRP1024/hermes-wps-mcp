@@ -37,24 +37,32 @@ MUST_HAVE = [
     "./wps-office-mcp/dist/client/wps-client.js",
     "./wps-office-mcp/dist/server/mcp-server.js",
     "./wps-office-mcp/node_modules/@modelcontextprotocol/sdk/package.json",
+    "./wps-office-mcp/package.json",
     "./wps-claude-assistant/manifest.xml",
     "./wps-claude-assistant/ribbon.xml",
     "./wps-claude-assistant/main.js",
     "./build-info.json",
     "./MANIFEST.tsv",
+    "./MANIFEST.links.tsv",
 ]
 
 MUST_NOT_HAVE_PREFIX = [
-    # dev 依赖：离线包里不该出现
+    # 明确不该进来的：构建/测试工具链
     "./wps-office-mcp/node_modules/jest/",
     "./wps-office-mcp/node_modules/ts-jest/",
     "./wps-office-mcp/node_modules/typescript/",
-    "./wps-office-mcp/node_modules/@types/",
+    "./wps-office-mcp/node_modules/ts-node/",
+    "./wps-office-mcp/node_modules/rimraf/",
     # 缓存与临时物
     "./wps-office-mcp/node_modules/.cache/",
     "./.git/",
     "./.stage/",
 ]
+
+# 注意：不能笼统禁掉 node_modules/@types/。
+# @types/triple-beam 是 logform（winston 的依赖）的**生产依赖**，
+# 按前缀禁会把合法内容判成违规。dev 依赖改为按 package.json 的
+# devDependencies 逐个核对（见 [3b]）。
 
 
 def main():
@@ -109,13 +117,44 @@ def main():
         else:
             ok("无 %s" % pref)
 
-    print("\n[4] 源码泄漏")
-    stray = [n for n in names
-             if re.search(r"\.(ts|tsx)$", n) and not n.endswith(".d.ts")]
-    if stray:
-        bad("dist 不应含 .ts", "%d 个，例如 %s" % (len(stray), stray[0]))
+    print("\n[3b] devDependencies 逐个核对")
+    # 按包内 package.json 逐条断言，比「按前缀猜」准确：
+    # 既不放过真进来的 dev 依赖，也不误伤被生产依赖引用的 @types。
+    pkg_name = next((n for n in names if n.rstrip("/") == "./wps-office-mcp/package.json"), None)
+    if not pkg_name:
+        bad("wps-office-mcp/package.json", "缺失，无法核对 dev 依赖")
     else:
-        ok("无 .ts 源码")
+        try:
+            with tarfile.open(tb, "r:gz") as tf:
+                meta = json.loads(tf.extractfile(pkg_name).read().decode("utf-8"))
+            devdeps = sorted(meta.get("devDependencies") or {})
+            if not devdeps:
+                ok("package.json 未声明 devDependencies")
+            leaked = []
+            for d in devdeps:
+                pref = "./wps-office-mcp/node_modules/%s/" % d
+                hit = [n for n in names if n == pref.rstrip("/") or n.startswith(pref)]
+                if hit:
+                    leaked.append((d, hit[0]))
+            if leaked:
+                bad("混入 dev 依赖",
+                    "%d 个: %s" % (len(leaked), ", ".join(d for d, _ in leaked)))
+            else:
+                ok("dev 依赖均已排除", "%d 个: %s" % (len(devdeps), " ".join(devdeps)))
+        except Exception as e:
+            bad("package.json 解析", "%s: %s" % (type(e).__name__, e))
+
+    print("\n[4] 源码泄漏")
+    # 只查我们自己的产物与源码树。第三方包自带 .ts 是正常的
+    # （例如 ajv 就把 lib/*.ts 一起发布），不能算泄漏。
+    ours = ("./wps-office-mcp/dist/", "./wps-office-mcp/src/")
+    stray = [n for n in names
+             if n.startswith(ours)
+             and re.search(r"\.(ts|tsx)$", n) and not n.endswith(".d.ts")]
+    if stray:
+        bad("自有产物不应含 .ts", "%d 个，例如 %s" % (len(stray), stray[0]))
+    else:
+        ok("自有产物无 .ts 源码")
 
     print("\n[5] 符号链接安全性")
     dangling = []

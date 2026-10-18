@@ -39,6 +39,47 @@ npm ci --omit=dev --no-audit --no-fund \
   --loglevel=error
 say "node_modules: $(du -sh "${STAGE}/wps-office-mcp/node_modules" | cut -f1)"
 
+head_ "清理悬空 bin 链接"
+# npm 的 .bin/* 是指向包内可执行文件的符号链接。--omit=dev 之后，
+# 有些包（如 jest 链上的 which）不在了，但 .bin 里的链接还留着 -> 悬空。
+# 处理原则：只清「所属包整个不在了」的链接；若包还在而文件缺失，说明包坏了，直接失败。
+python3 - "$STAGE" <<'PYEOF'
+import os
+import sys
+
+root = sys.argv[1]
+removed, broken = [], []
+
+for dirpath, dirnames, filenames in os.walk(root):
+    for name in list(dirnames) + filenames:
+        p = os.path.join(dirpath, name)
+        if not os.path.islink(p) or os.path.exists(p):
+            continue
+        target = os.path.normpath(os.path.join(dirpath, os.readlink(p)))
+        rel = os.path.relpath(target, root).replace(os.sep, "/")
+        parts = rel.split("/")
+        pkg = None
+        if "node_modules" in parts:
+            i = len(parts) - 1 - parts[::-1].index("node_modules")
+            seg = parts[i + 1]
+            if seg.startswith("@"):
+                pkg = os.path.join(root, *parts[: i + 1], seg, parts[i + 2])
+            else:
+                pkg = os.path.join(root, *parts[: i + 1], seg)
+        if pkg and not os.path.exists(pkg):
+            os.unlink(p)
+            removed.append((os.path.relpath(p, root), rel))
+        else:
+            broken.append((os.path.relpath(p, root), rel))
+
+for p, t in removed:
+    print("  移除悬空链接（所属包不在生产依赖树中）: %s -> %s" % (p, t))
+for p, t in broken:
+    print("  悬空链接（所属包仍在，包内容不完整）: %s -> %s" % (p, t))
+print("  小计: 移除 %d 个，异常 %d 个" % (len(removed), len(broken)))
+sys.exit(1 if broken else 0)
+PYEOF
+
 head_ "复制加载项与文档"
 cp -a "${PKG_ROOT}/wps-claude-assistant" "${STAGE}/"
 cp -a "${PKG_ROOT}/install.sh" "${STAGE}/"
@@ -62,11 +103,14 @@ EOF
 cat "${STAGE}/build-info.json"
 
 head_ "生成 MANIFEST"
-# 只登记普通文件；符号链接另记（npm 的 .bin/* 是 symlink）
+# 顺序很重要：链接清单必须先写在 MANIFEST.tsv 之前生成，
+# 否则 MANIFEST.tsv 自己不会把 MANIFEST.links.tsv 登记进去（它还不存在），
+# 校验侧就会报「清单漏登记」。
+# MANIFEST.tsv 自身在生成中，用 -not -name 排除，校验侧对此有豁免。
 (
   cd "$STAGE"
-  find . -type f -printf '%s\t%p\n' | LC_ALL=C sort -k2 > "${STAGE}/MANIFEST.tsv"
   find . -type l -printf 'LINK\t%p\t%l\n' | LC_ALL=C sort -k2 > "${STAGE}/MANIFEST.links.tsv"
+  find . -type f -not -name 'MANIFEST.tsv' -printf '%s\t%p\n' | LC_ALL=C sort -k2 > "${STAGE}/MANIFEST.tsv"
 )
 say "普通文件: $(wc -l < "${STAGE}/MANIFEST.tsv")"
 say "符号链接: $(wc -l < "${STAGE}/MANIFEST.links.tsv")"
