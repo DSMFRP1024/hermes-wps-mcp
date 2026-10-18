@@ -59,7 +59,7 @@ WPS 加载项「WPS助手」（WPS 内嵌 V8）
 | # | 文件 | 改动 | 原因 |
 |---|---|---|---|
 | 1 | `wps-office-mcp/src/client/mac-poll-server.ts` | `switchApp()` 开头加 Linux 分支直接返回 | 原实现调 `wps-auto.sh`，其 `start_app()` 用 macOS 的 `open` 命令（Linux 没有），pptx 分支还依赖 `python-pptx`。内网场景 Hermes 常驻、WPS 用户自己开，无需拉起/杀进程 |
-| 2 | `install.sh` | **新增** | 上游 `scripts/install.sh` 到处是 `claude mcp add`、`~/.claude/skills`、联网检查 |
+| 2 | `install.sh` | **新增** | 上游 `scripts/install.sh` 硬编码了特定 AI 宿主的 MCP 注册命令与 skills 软链目录，还带联网检查 |
 | 3 | `build/test_poll_protocol.mjs` | **新增** | 上游**零测试**：`jest.config.js` 指向的 `src/tests/setup.ts` 根本不存在，`npm test` 必然失败 |
 | 4 | `build/verify_dist.mjs` | **新增** | 拦「编译绿了但产物不可用」 |
 | 5 | `build/package_offline.sh` | **新增** | 内网无 npm，必须自带 `node_modules` |
