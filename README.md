@@ -87,8 +87,15 @@ bash build/package_offline.sh
 或直接取 CI artifact（workflow `build-wps-mcp`，runner `ubuntu-24.04-arm`）：
 
 ```
-wps-mcp-offline-aarch64.tar.gz        4.24 MiB / 5045 条目（4358 文件 + 2 符号链接）
-sha256 420a798e25959dc9e0c36447b0a90efd79f337ae16d5f8e8297f0d968057d9ee
+wps-mcp-offline-aarch64.tar.gz    约 4.2 MiB / 约 5000 条目
+wps-mcp-offline-aarch64.tar.gz.sha256
+```
+
+**字节数与 sha256 每次构建都会变**，所以这里不写死：README 本身也打进了产物，
+写死哈希会立刻变成自指的过期值。校验一律以 artifact 里那个 `.sha256` 为准：
+
+```bash
+sha256sum -c wps-mcp-offline-aarch64.tar.gz.sha256
 ```
 
 CI 会在两个 node 版本（22 / 24）上各跑一遍，只有 node 22 那路上传产物。
