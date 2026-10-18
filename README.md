@@ -1,5 +1,7 @@
 # Hermes WPS MCP
 
+[![build-wps-mcp](https://github.com/DSMFRP1024/hermes-wps-mcp/actions/workflows/build.yml/badge.svg)](https://github.com/DSMFRP1024/hermes-wps-mcp/actions/workflows/build.yml)
+
 上游 [`lc2panda/wps-skills`](https://github.com/lc2panda/wps-skills) 的**离线部署适配版**，
 用于内网 aarch64 Linux（银河麒麟 V10 / 统信 UOS 20 / openEuler）上，
 让 Hermes Agent 通过 MCP 直接操作正在运行的 WPS 文档。
@@ -82,7 +84,15 @@ bash build/package_offline.sh
 # -> dist-pkg/wps-mcp-offline-aarch64.tar.gz + .sha256
 ```
 
-或直接取 CI artifact（workflow `build-wps-mcp`，runner `ubuntu-24.04-arm`）。
+或直接取 CI artifact（workflow `build-wps-mcp`，runner `ubuntu-24.04-arm`）：
+
+```
+wps-mcp-offline-aarch64.tar.gz        4.24 MiB / 5045 条目（4358 文件 + 2 符号链接）
+sha256 420a798e25959dc9e0c36447b0a90efd79f337ae16d5f8e8297f0d968057d9ee
+```
+
+CI 会在两个 node 版本（22 / 24）上各跑一遍，只有 node 22 那路上传产物。
+打包后立刻用 `build/verify_package.py` 校验（28 项），本地下载回来再跑**同一份规则**。
 
 ## 内网安装
 
