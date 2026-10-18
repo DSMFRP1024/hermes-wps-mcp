@@ -106,6 +106,28 @@ bash install.sh
 `install.sh` 依次做：探测 node/WPS → 校验包完整性 → 部署服务与加载项 →
 **合并**（非覆盖）`publish.xml`（改前备份）→ 重启 WPS → 打印 MCP 配置片段。
 
+### 加载项要不要手动启用？
+
+**不需要。** 注册进 `publish.xml` 之后，每次 WPS 启动都会自动扫描并加载，
+功能区的 `onLoad="OnAddinLoad"` 自动触发，轮询随即开始，用户不用点任何按钮。
+
+只有一个**一次性**动作：**把所有 WPS 进程退干净再打开**（托盘/后台残留也算）。
+因为 `publish.xml` 只在进程启动时读一次。`install.sh` 会自动执行
+`quickstartoffice restart` 代替你完成；探测不到该脚本时才需要手动重启。
+
+`publish.xml` 里的 `enable="enable_dev"` 是让它默认启用、并跳过 md5 校验，
+省掉在「加载项管理器」里手工勾选这一步。
+
+功能区没出现「Claude助手」时，按顺序查：
+
+1. **装到了 root 名下** —— `sudo bash install.sh` 会把加载项写进
+   `/root/.local/share/Kingsoft/wps/jsaddons/`，你用普通用户开 WPS 自然看不到。
+   `install.sh` 现在会对这种情况显式告警。用 `--jaddons` 指到正确用户目录。
+2. **没真正重启** —— `ps -ef | grep -i wps` 还有残留就得全杀掉再开。
+3. **没有图形会话** —— ssh 无 X11/Wayland 转发时加载项不会加载，无报错。
+4. 以上都对仍不出现，看 `~/.local/share/Kingsoft/wps/jsaddons/publish.xml`
+   里有没有 `name="claude-assistant"`，以及目录是否叫 `claude-assistant_`（尾部下划线）。
+
 ### 在 Hermes 注册 MCP
 
 ```json

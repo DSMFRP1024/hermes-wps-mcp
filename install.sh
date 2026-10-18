@@ -86,6 +86,16 @@ done
 say "quickstartoffice: ${QUICKSTART:-未找到（稍后手动重启 WPS）}"
 
 say "安装目录: $PREFIX"
+say "加载项目录: $JSDADDONS"
+
+# 常见坑：用户习惯 `sudo bash install.sh`，于是 $HOME=/root，
+# 加载项落到 /root/.local/share/Kingsoft/wps/jsaddons —— 日常用户开 WPS 时**完全不生效**，
+# 而且没有任何报错。这里不阻止（确有人以 root 跑图形会话），但必须显式告警。
+if [ "$(id -u)" = "0" ] || [ "$HOME" = "/root" ]; then
+  warn "当前以 root 运行，加载项将注册到 $JSDADDONS"
+  warn "若你平时用普通用户打开 WPS，请改用该用户执行；或用 --jaddons 显式指向"
+  warn "该用户的 ~/.local/share/Kingsoft/wps/jsaddons"
+fi
 
 # ---------------------------------------------------------------- 卸载
 
