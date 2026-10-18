@@ -13,8 +13,12 @@ import sys
 import tarfile
 import tempfile
 
-VP = r"D:/TTTOM-Projects/Hermes/wps-mcp/build/verify_package.py"
+VP = os.path.join(os.path.dirname(os.path.abspath(__file__)), "verify_package.py")
 PY = sys.executable
+
+if not os.path.exists(VP):
+    print("✗ 找不到被测试的校验器: %s" % VP)
+    sys.exit(2)
 
 fails = []
 
